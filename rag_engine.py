@@ -94,23 +94,25 @@ def process_documents():
         st.warning(f"Please upload the documents and provide the missing fields.")
     else:
         try:
+            documents = []
             for source_doc in st.session_state.source_docs:
                 #
                 with tempfile.NamedTemporaryFile(delete=False, dir=TMP_DIR.as_posix(), suffix='.pdf') as tmp_file:
                     tmp_file.write(source_doc.read())
                 #
-                documents = load_documents()
+                loader = DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf')
+                documents.extend(loader.load())
                 #
                 for _file in TMP_DIR.iterdir():
                     temp_file = TMP_DIR.joinpath(_file)
                     temp_file.unlink()
-                #
-                texts = split_documents(documents)
-                #
-                if not st.session_state.pinecone_db:
-                    st.session_state.retriever = embeddings_on_local_vectordb(texts)
-                else:
-                    st.session_state.retriever = embeddings_on_pinecone(texts)
+            #
+            texts = split_documents(documents)
+            #
+            if not st.session_state.pinecone_db:
+                st.session_state.retriever = embeddings_on_local_vectordb(texts)
+            else:
+                st.session_state.retriever = embeddings_on_pinecone(texts)
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
